@@ -6,6 +6,7 @@ import * as os from 'os';
 import * as semver from 'semver';
 import * as github from '@actions/github';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import axios, { isAxiosError } from 'axios';
 
 async function validateSubscription() {
@@ -175,6 +176,42 @@ async function getAllVersions(): Promise<string[]> {
   return allVersions;
 }
 
+function computeSHA256(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', reject);
+  });
+}
+
+async function verifyChecksum(
+  binaryPath: string,
+  checksumUrl: string,
+): Promise<void> {
+  let checksumFilePath: string;
+  try {
+    checksumFilePath = await tc.downloadTool(checksumUrl);
+  } catch {
+    core.info('Checksum file not found, skipping integrity verification.');
+    return;
+  }
+
+  const expected = fs
+    .readFileSync(checksumFilePath, 'utf8')
+    .trim()
+    .split(/\s+/)[0];
+  const actual = await computeSHA256(binaryPath);
+
+  if (actual !== expected) {
+    throw new Error(
+      `Checksum mismatch for ${path.basename(binaryPath)}: expected ${expected}, got ${actual}`,
+    );
+  }
+  core.info('Checksum verification passed.');
+}
+
 async function setup(): Promise<void> {
   try {
     await validateSubscription();
@@ -185,13 +222,12 @@ async function setup(): Promise<void> {
     const download = getDownloadObject(version, mirror);
     const pathToCLI = fs.mkdtempSync(path.join(os.tmpdir(), 'tmp'));
 
-    await tc.downloadTool(
-      download.url,
-      path.join(pathToCLI, download.binaryName),
-    );
+    const binaryPath = path.join(pathToCLI, download.binaryName);
+    await tc.downloadTool(download.url, binaryPath);
+    await verifyChecksum(binaryPath, `${download.url}.sha256`);
 
     // Make the downloaded file executable
-    fs.chmodSync(path.join(pathToCLI, download.binaryName), '755');
+    fs.chmodSync(binaryPath, '755');
 
     // Rename the platform/architecture specific binary to 'opa' or 'opa.exe'
     await renameBinary(pathToCLI, download.binaryName);

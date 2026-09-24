@@ -4009,11 +4009,11 @@ var require_util2 = __commonJS({
     var { isUint8Array } = require("node:util/types");
     var { webidl } = require_webidl();
     var supportedHashes = [];
-    var crypto3;
+    var crypto4;
     try {
-      crypto3 = require("node:crypto");
+      crypto4 = require("node:crypto");
       const possibleRelevantHashes = ["sha256", "sha384", "sha512"];
-      supportedHashes = crypto3.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
+      supportedHashes = crypto4.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
     } catch {
     }
     function responseURL(response) {
@@ -4286,7 +4286,7 @@ var require_util2 = __commonJS({
       }
     }
     function bytesMatch(bytes, metadataList) {
-      if (crypto3 === void 0) {
+      if (crypto4 === void 0) {
         return true;
       }
       const parsedMetadata = parseMetadata(metadataList);
@@ -4301,7 +4301,7 @@ var require_util2 = __commonJS({
       for (const item of metadata) {
         const algorithm = item.algo;
         const expectedValue = item.hash;
-        let actualValue = crypto3.createHash(algorithm).update(bytes).digest("base64");
+        let actualValue = crypto4.createHash(algorithm).update(bytes).digest("base64");
         if (actualValue[actualValue.length - 1] === "=") {
           if (actualValue[actualValue.length - 2] === "=") {
             actualValue = actualValue.slice(0, -2);
@@ -5365,8 +5365,8 @@ var require_body = __commonJS({
     var { multipartFormDataParser } = require_formdata_parser();
     var random;
     try {
-      const crypto3 = require("node:crypto");
-      random = (max) => crypto3.randomInt(0, max);
+      const crypto4 = require("node:crypto");
+      random = (max) => crypto4.randomInt(0, max);
     } catch {
       random = (max) => Math.floor(Math.random(max));
     }
@@ -16775,13 +16775,13 @@ var require_frame = __commonJS({
     "use strict";
     var { maxUnsigned16Bit } = require_constants5();
     var BUFFER_SIZE = 16386;
-    var crypto3;
+    var crypto4;
     var buffer = null;
     var bufIdx = BUFFER_SIZE;
     try {
-      crypto3 = require("node:crypto");
+      crypto4 = require("node:crypto");
     } catch {
-      crypto3 = {
+      crypto4 = {
         // not full compatibility, but minimum.
         randomFillSync: function randomFillSync(buffer2, _offset, _size) {
           for (let i = 0; i < buffer2.length; ++i) {
@@ -16794,7 +16794,7 @@ var require_frame = __commonJS({
     function generateMask() {
       if (bufIdx === BUFFER_SIZE) {
         bufIdx = 0;
-        crypto3.randomFillSync(buffer ??= Buffer.allocUnsafe(BUFFER_SIZE), 0, BUFFER_SIZE);
+        crypto4.randomFillSync(buffer ??= Buffer.allocUnsafe(BUFFER_SIZE), 0, BUFFER_SIZE);
       }
       return [buffer[bufIdx++], buffer[bufIdx++], buffer[bufIdx++], buffer[bufIdx++]];
     }
@@ -16866,9 +16866,9 @@ var require_connection = __commonJS({
     var { Headers: Headers2, getHeadersList } = require_headers();
     var { getDecodeSplit } = require_util2();
     var { WebsocketFrameSend } = require_frame();
-    var crypto3;
+    var crypto4;
     try {
-      crypto3 = require("node:crypto");
+      crypto4 = require("node:crypto");
     } catch {
     }
     function establishWebSocketConnection(url2, protocols, client, ws, onEstablish, options) {
@@ -16888,7 +16888,7 @@ var require_connection = __commonJS({
         const headersList = getHeadersList(new Headers2(options.headers));
         request2.headersList = headersList;
       }
-      const keyValue = crypto3.randomBytes(16).toString("base64");
+      const keyValue = crypto4.randomBytes(16).toString("base64");
       request2.headersList.append("sec-websocket-key", keyValue);
       request2.headersList.append("sec-websocket-version", "13");
       for (const protocol of protocols) {
@@ -16918,7 +16918,7 @@ var require_connection = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto3.createHash("sha1").update(keyValue + uid).digest("base64");
+          const digest = crypto4.createHash("sha1").update(keyValue + uid).digest("base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(ws, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -31392,7 +31392,7 @@ var require_form_data = __commonJS({
     var parseUrl3 = require("url").parse;
     var fs5 = require("fs");
     var Stream = require("stream").Stream;
-    var crypto3 = require("crypto");
+    var crypto4 = require("crypto");
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var setToStringTag = require_es_set_tostringtag();
@@ -31601,7 +31601,7 @@ var require_form_data = __commonJS({
       return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
     };
     FormData3.prototype._generateBoundary = function() {
-      this._boundary = "--------------------------" + crypto3.randomBytes(12).toString("hex");
+      this._boundary = "--------------------------" + crypto4.randomBytes(12).toString("hex");
     };
     FormData3.prototype.getLengthSync = function() {
       var knownLength = this._overheadLength + this._valueLength;
@@ -38664,6 +38664,7 @@ function getOctokit(token, options, ...additionalPlugins) {
 
 // src/index.ts
 var fs4 = __toESM(require("fs"));
+var crypto3 = __toESM(require("crypto"));
 
 // node_modules/axios/lib/helpers/bind.js
 function bind2(fn, thisArg) {
@@ -44412,6 +44413,32 @@ async function getAllVersions() {
   }
   return allVersions;
 }
+function computeSHA256(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto3.createHash("sha256");
+    const stream5 = fs4.createReadStream(filePath);
+    stream5.on("data", (chunk) => hash.update(chunk));
+    stream5.on("end", () => resolve(hash.digest("hex")));
+    stream5.on("error", reject);
+  });
+}
+async function verifyChecksum(binaryPath, checksumUrl) {
+  let checksumFilePath;
+  try {
+    checksumFilePath = await downloadTool(checksumUrl);
+  } catch {
+    info("Checksum file not found, skipping integrity verification.");
+    return;
+  }
+  const expected = fs4.readFileSync(checksumFilePath, "utf8").trim().split(/\s+/)[0];
+  const actual = await computeSHA256(binaryPath);
+  if (actual !== expected) {
+    throw new Error(
+      `Checksum mismatch for ${path4.basename(binaryPath)}: expected ${expected}, got ${actual}`
+    );
+  }
+  info("Checksum verification passed.");
+}
 async function setup() {
   try {
     await validateSubscription();
@@ -44419,11 +44446,10 @@ async function setup() {
     const mirror = getInput("mirror");
     const download = getDownloadObject(version, mirror);
     const pathToCLI = fs4.mkdtempSync(path4.join(os5.tmpdir(), "tmp"));
-    await downloadTool(
-      download.url,
-      path4.join(pathToCLI, download.binaryName)
-    );
-    fs4.chmodSync(path4.join(pathToCLI, download.binaryName), "755");
+    const binaryPath = path4.join(pathToCLI, download.binaryName);
+    await downloadTool(download.url, binaryPath);
+    await verifyChecksum(binaryPath, `${download.url}.sha256`);
+    fs4.chmodSync(binaryPath, "755");
     await renameBinary(pathToCLI, download.binaryName);
     addPath(pathToCLI);
     info(`Setup Open Policy Agent CLI version ${version}`);
