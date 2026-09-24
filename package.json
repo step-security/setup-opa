@@ -1,0 +1,42 @@
+{
+  "name": "setup-opa",
+  "version": "2.4.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint --ext .ts,.js --ignore-path .gitignore --ignore-path .eslintignore .",
+    "prepare": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --sourcemap",
+    "test": "jest",
+    "all": "npm run lint && npm run prepare && npm run test",
+    "format": "prettier --write 'src/**/*.{js,ts}'"
+  },
+  "keywords": [],
+  "homepage": "https://github.com/step-security/setup-opa#readme",
+  "author": "step-security",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/step-security/setup-opa.git"
+  },
+  "dependencies": {
+    "@actions/core": "^3.0.0",
+    "@actions/github": "^9.1.0",
+    "@actions/io": "^3.0.2",
+    "@actions/tool-cache": "^4.0.0",
+    "axios": "^1.20.0",
+    "semver": "^7.7.2"
+  },
+  "devDependencies": {
+    "@types/semver": "^7.7.1",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "esbuild": "^0.28.0",
+    "eslint": "^8.1.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "jest": "^30.3.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.8.3"
+  }
+}
